@@ -1,0 +1,14 @@
+*.DS_Store
+*.pyc
+__pycache__
+
+*.sublime-*
+.venv
+.vscode
+
+build/*
+dist/*
+emmett_mongo.egg-info/*
+poetry.lock
+
+tests/logs/*

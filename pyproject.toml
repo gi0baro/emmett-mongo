@@ -1,0 +1,51 @@
+[tool.poetry]
+name = "Emmett-Mongo"
+version = "0.1.0.dev0"
+description = "MongoDB utils for Emmett framework"
+authors = ["Giovanni Barillari <gi0baro@d4net.org>"]
+license = "BSD-3-Clause"
+
+readme = "README.md"
+homepage = "https://github.com/gi0baro/emmett-mongo"
+repository = "https://github.com/gi0baro/emmett-mongo"
+
+keywords = ["mongodb", "emmett"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+packages = [
+    {include = "emmett_mongo"},
+    {include = "tests", format = "sdist"}
+]
+include = [
+    "LICENSE"
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+emmett = {version = ">1", allow-prereleases = true}
+motor = "~2.1.0"
+pymongo = "~3.10.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.3"
+pytest-asyncio = "^0.10"
+pylint = "^2.4.4"
+
+[tool.poetry.urls]
+"Issue Tracker" = "https://github.com/gi0baro/emmett-mongo/issues"
+
+[build-system]
+requires = ["poetry>=1.0.0"]
+build-backend = "poetry.masonry.api"
