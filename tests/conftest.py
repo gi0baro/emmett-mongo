@@ -25,7 +25,7 @@ def app(event_loop):
     return rv
 
 
-def _db_teardown_generator_sync(db):
+def _db_teardown_generator(db):
     def teardown():
         with db.connection():
             for name in db.raw.list_collection_names():
@@ -36,28 +36,9 @@ def _db_teardown_generator_sync(db):
     return teardown
 
 
-def _db_teardown_generator_loop(db):
-    async def teardown():
-        async with db.connection():
-            async for name in db.raw.list_collection_names():
-                try:
-                    await db.raw.drop_collection(name)
-                except Exception:
-                    pass
-    return teardown
-
-
 @pytest.fixture(scope='function')
-def sync_db(request, app):
-    rv = Database(app, policy='sync')
-    rv.define_collections('test_sync')
-    request.addfinalizer(_db_teardown_generator_sync(rv))
-    return rv
-
-
-@pytest.fixture(scope='function')
-def loop_db(request, app):
-    rv = Database(app, policy='loop')
-    rv.define_collections('test_loop')
-    request.addfinalizer(_db_teardown_generator_loop(rv))
+def db(request, app):
+    rv = Database(app)
+    rv.define_collections('tests')
+    request.addfinalizer(_db_teardown_generator(rv))
     return rv

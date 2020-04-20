@@ -21,10 +21,6 @@ class ExtModule:
     def db(self):
         return self.ext.db
 
-    @property
-    def db_ops(self):
-        return self.ext.db_ops
-
 
 def _build_migrate_cmd(ext):
     def migrate():

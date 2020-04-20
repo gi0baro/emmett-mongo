@@ -54,11 +54,11 @@ class Indexes(ExtModule):
                 index_data
         to_del, to_add = {}, {}
         existing_indexes = {}
-        with self.db_ops.connection():
+        with self.db.connection():
             for collection, collection_indexes in grouped_indexes.items():
                 existing_names = set([
                     el['name']
-                    for el in self.db_ops.raw[collection].list_indexes()
+                    for el in self.db.raw[collection].list_indexes()
                     if el['name'].startswith('mext_')
                 ])
                 existing_indexes[collection] = existing_names
@@ -73,7 +73,7 @@ class Indexes(ExtModule):
                 print(f'  Creating indexes for {collection}:')
                 for name in index_names:
                     print(f'  - {name}')
-                self.db_ops.raw[collection].create_indexes([
+                self.db.raw[collection].create_indexes([
                     grouped_indexes[collection][name]['model']
                     for name in index_names
                 ])
@@ -81,5 +81,5 @@ class Indexes(ExtModule):
                 print(f'  Dropping indexes for {collection}:')
                 for name in index_names:
                     print(f'  - {name}')
-                    self.db_ops.raw[collection].drop_index(name)
+                    self.db.raw[collection].drop_index(name)
         print('> Indexes applied.')

@@ -10,10 +10,8 @@
 """
 
 import asyncio
-import os
 import pymongo
 
-from emmett.datastructures import sdict
 from emmett.orm._patches import BaseAdapter
 from emmett.orm.adapters import adapters
 from emmett.orm.base import (
@@ -59,9 +57,32 @@ class PooledConnectionManager(_PooledConnectionManager):
         self._ioloop = asyncio.get_event_loop()
         return asyncio.Lock()
 
+    def _connector_sync(self):
+        return self.adapter.connector_sync()
 
+    def _connector_loop(self):
+        return self.adapter.connector_loop()
+
+
+@adapters.register_for('mongodb')
 class MongoAdapter(BaseAdapter):
     _connection_manager_cls = PooledConnectionManager
+
+    def find_driver(self):
+        self.driver_sync = pymongo
+        self.driver_loop = motor_asyncio
+
+    def connector_sync(self):
+        conn = self.driver_sync.MongoClient(self.uri)[self._driver_db]
+        conn.close = lambda: None
+        return conn
+
+    def connector_loop(self):
+        conn = self.driver_loop.AsyncIOMotorClient(
+            self.uri, io_loop=self._connection_manager._ioloop
+        )[self._driver_db]
+        conn.close = lambda: None
+        return conn
 
     def _load_dependencies(self):
         self.dialect = dialects.get_for(self)
@@ -70,9 +91,6 @@ class MongoAdapter(BaseAdapter):
 
     def _initialize_(self, do_connect):
         super(MongoAdapter, self)._initialize_(do_connect)
-        uri_components = self.uri.split('://')
-        self.uri = '://'.join(
-            [uri_components[0].split('_')[0], uri_components[1]])
         m = pymongo.uri_parser.parse_uri(self.uri)
         if isinstance(m, tuple):
             m = {"database": m[1]}
@@ -105,7 +123,7 @@ class MongoAdapter(BaseAdapter):
             return is_open
         try:
             self.session.end_session()
-            self._connection_manager.close_sync(self.connection, really)
+            self._connection_manager.disconnect_sync(self.connection, really)
         finally:
             self.session = None
             self.connection = None
@@ -128,7 +146,9 @@ class MongoAdapter(BaseAdapter):
             return is_open
         try:
             await self.session.end_session()
-            await self._connection_manager.close_loop(self.connection, really)
+            await self._connection_manager.disconnect_loop(
+                self.connection, really
+            )
         finally:
             self.session = None
             self.connection = None
@@ -144,56 +164,10 @@ class MongoAdapter(BaseAdapter):
         pass
 
 
-@adapters.register_for('mongodb_sync')
-class SyncAdapter(MongoAdapter):
-    def find_driver(self):
-        self.driver = pymongo
-
-    def connector(self):
-        conn = self.driver.MongoClient(self.uri)[self._driver_db]
-        conn.close = lambda: None
-        return conn
-
-
-@adapters.register_for('mongodb_loop')
-class LoopAdapter(MongoAdapter):
-    def find_driver(self):
-        self.driver = motor_asyncio
-
-    def connector(self):
-        conn = self.driver.AsyncIOMotorClient(
-            self.uri, io_loop=self._connection_manager._ioloop
-        )[self._driver_db]
-        conn.close = lambda: None
-        return conn
-
-
 class Database(_Database):
     def __init__(self, app, **kwargs):
-        self._policy = kwargs.pop('policy', 'auto')
-        config = kwargs.pop('config', None)
-        config = config or sdict(app.config.db)
-        if not config.uri:
-            config.uri = self.uri_from_config(config)
-        kwargs['config'] = config
         self._defined_collections = {}
         super().__init__(app, **kwargs)
-
-    def uri_from_config(self, config):
-        uri = _Database.uri_from_config(config)
-        adapter, conn = uri.split('://')
-        return '://'.join(['{}_{}'.format(adapter, self.get_policy()), conn])
-
-    def get_policy(self):
-        if self._policy == 'auto':
-            policy = os.environ.get(
-                'DATABASE_POLICY',
-                'sync' if os.environ.get('EMMETT_CLI_ENV') == 'true' else
-                'loop'
-            )
-        else:
-            policy = self._policy
-        return policy
 
     @property
     def raw(self):
@@ -208,11 +182,6 @@ class Database(_Database):
         if collection_name in self._defined_collections:
             return self._defined_collections[collection_name]
         return super().__getattr__(collection_name)
-
-
-class SyncDatabase(Database):
-    def get_policy(self):
-        return 'sync'
 
 
 class Collection:

@@ -51,22 +51,17 @@ class Migration(object):
 
 
 class Migrations(ExtModule):
-    def load_collections(self):
-        if self.db._defined_collections:
-            self.db_ops.define_collections(
-                *list(self.db._defined_collections.keys()))
-
     def apply_migration(self, migration):
         migration.load()
-        migration.invoke(self.db_ops)
-        self.db_ops[self.ext.migrations_collection].find_one_and_update(
+        migration.invoke(self.db)
+        self.db[self.ext.migrations_collection].find_one_and_update(
             {'app_name': self.app.name},
             {'$set': {'current_migration': migration.version}},
             upsert=True
         )
 
     def get_current_migration(self):
-        row = self.db_ops[self.ext.migrations_collection].find_one(
+        row = self.db[self.ext.migrations_collection].find_one(
             {'app_name': self.app.name}
         )
         return row['current_migration'] if row else None
@@ -91,8 +86,7 @@ class Migrations(ExtModule):
         if not migrations:
             print('> No migrations in app')
             return
-        self.load_collections()
-        with self.db_ops.connection():
+        with self.db.connection():
             current_migration = self.get_current_migration()
             print(
                 f'DB is at migration {current_migration}'

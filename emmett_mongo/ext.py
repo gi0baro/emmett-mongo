@@ -14,7 +14,7 @@ import os
 from emmett.datastructures import sdict
 from emmett.extensions import Extension, listen_signal
 
-from .db import SyncDatabase
+# from .db import SyncDatabase
 from .helpers import _build_migrate_cmd
 from .indexes import Indexes
 from .migrations import Migrations
@@ -28,7 +28,6 @@ class Mongo(Extension):
 
     def on_load(self):
         self.db = None
-        self.db_ops = None
         self.migrations_collection = f"{self.app.name}_migrations"
         self.migrations_path = os.path.join(
             self.app.root_path, self.config.migrations_folder
@@ -42,11 +41,6 @@ class Mongo(Extension):
         if self.db:
             return
         self.db = database
-        self.db_ops = SyncDatabase(
-            self.app, config=sdict(
-                uri=f"mongodb://{database.config.uri.split('://')[-1]}"
-            )
-        )
 
     def _configure_cli(self):
         self.app.command('mongo_migrate')(_build_migrate_cmd(self))

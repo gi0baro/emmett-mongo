@@ -34,7 +34,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.7"
-emmett = {version = ">1", allow-prereleases = true}
+emmett = { git = "https://github.com/emmett-framework/emmett.git", rev = "0a7bedc3c", allow-prereleases = true }
 motor = "~2.1.0"
 pymongo = "~3.10.0"
 
